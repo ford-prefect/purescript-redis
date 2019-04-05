@@ -19,13 +19,13 @@
   "homepage": "https://github.com/juspay/purescript-redis/README.md",
   "dependencies": {
     "big-integer": "^1.6.43",
-    "bluebird": "^3.5.1",
+    "bluebird": "^3.5.4",
     "cls-bluebird": "^2.1.0",
     "redis": "https://github.com/NodeRedis/node_redis/#0709a35afafd50a2525e3725eb63cb67efa4fcb9",
-    "zipkin": "^0.13.0",
-    "zipkin-context-cls": "^0.13.0",
-    "zipkin-instrumentation-redis": "^0.13.0",
-    "zipkin-transport-http": "^0.13.0"
+    "zipkin": "^0.17.1",
+    "zipkin-context-cls": "^0.17.1",
+    "zipkin-instrumentation-redis": "^0.17.1",
+    "zipkin-transport-http": "^0.17.1"
   },
   "devDependencies": {
     "cls-hooked": "^4.2.2"
