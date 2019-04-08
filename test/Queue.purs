@@ -1,33 +1,25 @@
 module Test.Queue where
 
-
-
 import Prelude
 
-import Cache (CACHE, db, exec, getConn, getHashKey, getHashKeyMulti, getKey, getKeyMulti, getMulti, host, incr, incrMulti, lindex, lpop, port, rpush, setHash, setHashMulti, setKey, setKeyMulti, setMulti, setex, setexKeyMulti, socketKeepAlive) as C
-import Cache (CacheConn)
-import Control.Monad.Aff (Aff, launchAff)
-import Control.Monad.Eff (Eff)
-import Data.Options (options, (:=))
-import Debug.Trace (spy, traceShow)
-import Test.Multi (multiTest)
+import Cache (CacheConn, lindex, lpop, rpush, setex) as C
+import Effect.Aff (Aff)
+import Debug.Trace (spy, traceM)
 
-
-queueTest :: CacheConn -> Aff _ Unit
+queueTest :: C.CacheConn -> Aff Unit
 queueTest cacheConn = do
-
     v0 <- C.lpop cacheConn "test-queue"
-    _ <- traceShow v0 \_ -> pure unit
+    traceM v0
     v1 <- C.rpush cacheConn "test-queue" "hi"
-    _ <- traceShow v1 \_ -> pure unit
+    traceM v1
     v2 <- C.lpop cacheConn "test-queue"
-    _ <- traceShow v2 \_ -> pure unit
+    traceM v2
     v3 <- C.lpop cacheConn "test-queue"
-    _ <- traceShow v3 \_ -> pure unit
+    traceM v3
     v <- C.setex cacheConn "talk" "i am awesome" "10000"
     l <- C.rpush cacheConn "DBACTIONS" "SELCT * FROM CUSTOMERS;"
     pop <- C.lpop cacheConn "DBACTIONS"
     peek <- C.lindex cacheConn "DBACTIONS" 0
-    _ <- pure $ spy peek
-    _ <- pure $ spy $ "It worked"
+    _ <- pure $ spy "peek" peek
+    _ <- pure $ spy "It worked" unit
     pure unit

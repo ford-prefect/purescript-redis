@@ -1,21 +1,21 @@
 module Test.Stream where
 
 import Cache (CacheConn, delKey)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
-import Control.Monad.Aff (Aff)
-import Control.Monad.Eff.Class (liftEff)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, newEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
 import Data.Array (index, length, singleton, (!!))
+import Data.BigInt (fromInt)
 import Data.Either (Either(..), fromRight)
 import Data.Maybe (Maybe(..), fromJust)
-import Data.StrMap (lookup, size)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
+import Effect.Aff (Aff)
+import Foreign.Object (lookup, size)
 import Partial.Unsafe (unsafePartial)
 import Prelude (Unit, bind, discard, flip, pure, show, unit, ($), (<>), (==))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
-import Test.Spec.Runner (run)
+import Test.Spec.Runner (runSpec)
 
 testStream :: String
 testStream = "test-stream"
@@ -26,13 +26,15 @@ testGroup = "test-group"
 testConsumer :: String
 testConsumer = "test-consumer"
 
-streamTest :: CacheConn -> Aff _ Unit
-streamTest cacheConn = liftEff $ run [consoleReporter] do
+testId :: EntryID
+testId = unsafePartial $ fromJust $ newEntryId (fromInt 99999999) (fromInt 0)
+
+streamTest :: CacheConn -> Aff Unit
+streamTest cacheConn = runSpec [consoleReporter] do
   describe "Stream" do
      -- FIXME: break up at commented "it"s on newer purescript-spec which can
      -- force sequential running of tests.
      it "works" do
-
      --it "returns 0 on non-existent stream" do
         _   <- delKey cacheConn testStream
         len <- xlen cacheConn testStream
@@ -42,19 +44,20 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
              Left err -> fail $ "Bad value: " <> show err
 
      --it "can add a key/value to a stream" do
-        id <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
+        id <- xadd cacheConn testStream testId $ singleton $ "test" /\ "123"
         case id of
-             Right v  -> pure unit
-             Left err -> fail $ "Add failed: " <> show err
+             Right i | i == testId -> pure unit
+             Right i'              -> fail $ "Unexpected ID: " <> show i'
+             Left err              -> fail $ "Add failed: " <> show err
 
      --it "can delete a key/value" do
-        n <- xdel cacheConn testStream $ unsafePartial $ fromRight id
+        n <- xdel cacheConn testStream testId
         case n of
              Right 1  -> pure unit
              Right v  -> fail $ "Deleted more than 1 entry: " <> (show v)
              Left err -> fail $ "Delete failed: " <> show err
 
-     --it "can read from an empty stream"
+     --it "can read from an empty stream" do
         val <- xread cacheConn Nothing [Tuple testStream firstEntryId]
         case val of
              Right v  -> size v `shouldEqual` 0
@@ -125,7 +128,7 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
              Right v  -> size v `shouldEqual` 0
              Left err -> fail $ "Read from group failed: " <> show err
 
-     --it "can read from a group" do
+     --it "can read from a group and ack" do
         _   <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
         val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testStream NewID]
         case val of
@@ -136,15 +139,13 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
                      Nothing -> fail "Could not find stream in result"
              Left err -> fail $ "Read from group failed: " <> show err
 
-     --it "can ack an entry" do
-        -- The previous test made sure this value exists
         let (Entry id _) = unsafePartial $ fromJust $ flip index 0 $ fromJust $ lookup testStream $ fromRight val
         res <- xack cacheConn testStream testGroup $ singleton id
         case res of
              Right _  -> pure unit
              Left err -> fail $ "Ack failed: " <> show err
 
-     --it "won't find an entry when all entries are acked"
+     --it "won't find an entry when all entries are acked" do
         val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testStream NewID]
         case val of
              Right v  -> size v `shouldEqual` 0
