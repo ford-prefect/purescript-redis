@@ -8,14 +8,11 @@ import Data.Either (Either(..), fromRight)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
-import Effect.Aff (Aff)
 import Foreign.Object (lookup, size)
 import Partial.Unsafe (unsafePartial)
 import Prelude (Unit, bind, discard, flip, pure, show, unit, ($), (<>), (==))
-import Test.Spec (describe, it)
+import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
-import Test.Spec.Reporter (consoleReporter)
-import Test.Spec.Runner (runSpec)
 
 testStream :: String
 testStream = "test-stream"
@@ -29,8 +26,8 @@ testConsumer = "test-consumer"
 testId :: EntryID
 testId = unsafePartial $ fromJust $ newEntryId (fromInt 99999999) (fromInt 0)
 
-streamTest :: CacheConn -> Aff Unit
-streamTest cacheConn = runSpec [consoleReporter] do
+streamTest :: CacheConn -> Spec Unit
+streamTest cacheConn =
   describe "Stream" do
      -- FIXME: break up at commented "it"s on newer purescript-spec which can
      -- force sequential running of tests.
